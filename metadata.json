@@ -1,0 +1,6 @@
+{
+  "name": "Web Project Sandbox",
+  "description": "Upload, inspect, edit, and preview multi-file web folders or ZIP archives with preserved folder structures and relative path links.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
