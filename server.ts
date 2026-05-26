@@ -157,29 +157,92 @@ async function startServer() {
 
       const userInstruction = instruction?.trim() 
         ? `Spezifischer Optimierungswunsch des Nutzers: "${instruction}"` 
-        : `Analysiere das Webprojekt nach typischen Fehlern (z.B. falsche/kaputte relative Verknüpfungen für Bilder oder CSS-Dateien, syntaktische Fehler, Inkonsistenzen in den CSS-Stilen) und nimm umfassende Verbesserungen vor.`;
+        : `Führe eine vollumfängliche, hochmoderne architektonische Optimierung der Frontend-Ressourcen durch unter Einhaltung zeitgemäßer Standards (fluide Typografie via clamp(), semantische Design-Tokens im :root, mobile-first Strukturierung, robustere Flex/Grid-Steuerungen, semantisches HTML5 und Reduzierung redundanter CSS-Deklarationen).`;
 
-      const prompt = `Du bist ein erstklassiger Webentwicklungs-Experte und KI-Entwicklungspartner.
-Wir betreiben eine Live-App, in der Nutzer Website-Ordner als 1-zu-1-Struktur hochladen. Jedes Projekt enthält HTML-, CSS-, JS-Dateien im Verbund unter exakten relativen Pfaden.
+      const prompt = `Du bist ein weltklasse, extrem präziser Webentwicklungs-Architekt und Senior Frontend Engineer. Du analysierst die hochgeladenen Workspace-Dateien (HTML, CSS, JS) ganzheitlich im Verbund.
 
-Hier ist der aktuelle Quellcode des Projekts als JSON-Mapping der relativen Dateipfade auf ihre Inhalte:
+Wir betreiben eine Live-Sandbox. Hier ist der aktuelle Code des hochgeladenen Projekts als JSON-Mapping der relativen Dateipfade auf ihre Dateiinhalte:
 ${JSON.stringify(textFilesForPrompt, null, 2)}
 
-Spezifische Anweisung:
+Spezifische Anweisung des Nutzers:
 ${userInstruction}
 
-DEINE AUFGABE:
-1. Analysiere alle bereitgestellten Dateien gründlich.
-2. Finde Fehler wie:
-   - Falsche relative Links (z.B. wenn eine CSS-Datei in "css/style.css" liegt, aber eine HTML-Datei "../css/style.css" oder "styles.css" referenziert - korrigiere das, indem du die Pfade in den Dateien aneinander anpasst!).
-   - CSS-Syntaxfehler, unfertiger oder inkonsistenter Code.
-   - Fehlende moderne Styling-Optimierungen, veraltete Design-Regeln, schlechte Abstände, falsche Typografie oder schlechter Kontrast.
-3. Führe die Optimierungen/Korrekturen vollautomatisch im gesamten Projekt durch. Wenn ein spezifischer Nutzerwunsch vorliegt, setze diesen in ALLEN betroffenen Dateien um.
-4. Gib das Ergebnis in folgendem exakten JSON-Format zurück (gemeldet in responseSchema):
-   - "explanation": Eine detaillierte, professionelle Zusammenfassung der Fehleranalyse und der vorgenommenen Anpassungen auf Deutsch im lesbaren Markdown-Format (Stichpunkte). Erkläre präzise, welche Fehler in welchen Dateien behoben wurden!
-   - "changes": Ein Objekt, das die geänderten Web-Dateipfade auf ihre NEUEN, VOLLSTÄNDIG optimierten Dateiinhalte abbildet (z.B. {"index.html": "<vollständiger code...>", "css/style.css": "<vollständiger code...>"}). Du musst NUR die geänderten Dateien zurückgeben. Gib immer den VOLLSTÄNDIGEN Dateiinhalt an, nicht bloß Diffs!
+DEINE ARCHITEKTONISCHE ANALYSE- UND OPTIMIERUNGSAUFGABE:
 
-WICHTIG: Übersetze Designwünsche in hervorragende Webdesigns (z.B. ansprechende Farbpaletten wie Indigo/Slate, weiche Schatten, harmonische Abstände, klare Typografie).`;
+1. KASKADE UND STRUKTUR (CSS-Architektur):
+   - Ist der CSS-Aufbau kontrolliert und nachvollziehbar? Ist zuerst der gestalterische Kern definiert, bevor einzelne Komponenten gestaltet werden?
+   - Trenne Basiswerte, Layout-Regeln, Komponenten-Regeln und globale Klassen sauber. Verhindere unkontrollierte Seiteneffekte der Kaskade.
+
+2. DESIGN TOKENS (Custom Properties):
+   - Definiere und verwende zentrale Werte konsistent über CSS Custom Properties (:root).
+   - Erstelle semantische Tokens für Farben, Typografie, Abstände, max-width Container-Breiten, Radien, Schatten, Z-Indexes und Übergangsgeschwindigkeiten.
+   - Sorge dafür, dass das Token-System robust genug ist, um neue Seiten erweiterbar zu machen.
+
+3. FLUID DESIGN UND SKALISIERUNG:
+   - Ersetze starre Pixel-Angaben (px) für Schriften, Abstände und Breiten durch zeitgemäße, fluide Einheiten und Funktionen (\`clamp()\`, \`min()\`, \`max()\`, \`rem\`, \`em\`, \`vw\`).
+   - Sorge für fließende Übergänge für Schriftgrößen (Fluid Typography) und Sektion-Abstände (Fluid Spacing) zwischen Viewports, ohne harte Breakpoint-Brüche.
+
+4. RESPONSIVE SYSTEM (Mobile-First):
+   - Baue das CSS konsequent Mobile-First auf.
+   - Setze Breakpoints sparsam, systematisch und konsistent ein. Verwende moderne Viewport-Einheiten (svh, dvh, lvh) und ggf. Container Queries (@container) für Komponenten.
+   - Stelle sicher, dass Inhalte, Bilder und CTAs auf kleinen Bildschirmen perfekt lesbar und fingerfreundlich bedienbar sind.
+
+5. HERO-BEREICH:
+   - Optimiere Headline (responsiv via clamp()), Subline, CTAs und Medien-Einbindung.
+   - Begrenze Textbreiten für optimale Lesbarkeit. Sorge für eine robuste Mindesthöhe des Heros, die das Layout auf kleinen Screens nicht sprengt.
+   - Hinterlege saubere CSS-Fallbacks für Medien.
+
+6. NAVIGATION:
+   - Sorge für eine strukturell saubere, robuste Menüstruktur, die auf Desktop und Mobile exzellent funktioniert (z.B. barrierefreies Mobile Burger-Menü/Offcanvas oder gestapelte Links).
+   - Definiere saubere States (hover, active, focus-visible, sticky, open, closed) ohne unsaubere Inline-Styles oder harte Einzelwerte im JS.
+
+7. LAYOUT-ROBUSTHEIT & SPEZIFITÄT:
+   - Verwende Flexbox und CSS Grid passend mit sauberen Gaps und Alignment-Regeln. Vermeide fragile absolute Abstände oder feste Höhen.
+   - Halte CSS-Selektoren leichtgewichtig und kontrollierbar. Beseitige tiefe Verschachtelungen und Spezifitätskämpfe.
+   - Bereinige redundanten oder ungenutzten CSS-Code vollständig.
+
+8. AUSGABEFORM DER ANALYSE ("explanation", MUSS exakt dieser Struktur folgen):
+   Gib eine hochprofessionelle, detaillierte Kritik und Erklärung auf Deutsch aus, strukturiert wie folgt:
+   
+   ## 🏆 COMPAKT-GESAMTURTEIL
+   [Eine prägnante, architektonische Einordnung des Projekts bezüglich Design-Qualität, Struktur und Modernität]
+
+   ## ⚠️ DIE WICHTIGSTEN STRUKTURELLEN SCHWÄCHEN
+   [Präzise Aufzählung der schwerwiegendsten Defizite, z.B. starre Pixelwerte, CSS-Chaos oder fragile Komponenten]
+
+   ## 📊 DETAIL-BEWERTUNGEN
+   - **Basisstruktur & Kaskade**: [Kritik/Lob]
+   - **Design Tokens (Properties)**: [Kritik/Lob]
+   - **Hero-Bereich & CTA-Fokus**: [Kritik/Lob]
+   - **Navigations-Architektur**: [Kritik/Lob]
+   - **Mobile-Verhalten & Breakpoints**: [Kritik/Lob]
+   - **Fluid Design (clamp/rem)**: [Kritik/Lob]
+   - **Layout-Robustheit (Grid/Flex)**: [Kritik/Lob]
+   - **Komponenten-Wiederverwendbarkeit**: [Kritik/Lob]
+   - **Redundanz- & Spezifitätsanalyse**: [Kritik/Lob]
+
+   ## 🔍 KONKRETE FUNDSTELLEN & FEHLER-ANALYSEN
+   - **Fundstelle**: [Dateipfad + Codezeile/Bereich]
+     - *Technische Ursache*: [Warum ist das suboptimal?]
+     - *Auswirkung*: [Wie äußert sich das beim Nutzer?]
+     - *Bessere Lösung*: [Die moderne Alternative]
+
+   ## 💡 BEST-PRACTICE REFERENZ-CODEBEISPIELE
+   ### 1. Perfekt strukturierter Design-Token CSS-Basis Reset
+   \`\`\`css
+   /* Code mit CSS Custom Properties, intuitivem Box-Sizing & fluiden Schrift-Größen */
+   \`\`\`
+   ### 2. Robuster & Fluider Hero-Bereich (HTML/CSS)
+   \`\`\`html
+   /* Beispiel */
+   \`\`\`
+   ### 3. Responsive & State-sichere Navigation (CSS/JS)
+   \`\`\`html
+   /* Beispiel */
+   \`\`\`
+
+9. CODE-AKTUALISIERUNG ("changes"):
+   - Liefere im "changes"-Objekt die korrigierten, vollendeten Dateiversionen mit erstklassigen Design-Token-Implementierungen zurück. Jede Datei muss als vollständiger neuer Code geliefert werden, der das System in ein hochmodernes, flexibles Pixel-freies Premium-Layout transformiert.`;
 
       const response = await client.models.generateContent({
         model: "gemini-3.5-flash",

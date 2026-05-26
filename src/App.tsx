@@ -29,7 +29,11 @@ import {
   X,
   ChevronLeft,
   Wand2,
-  Brain
+  Brain,
+  Smartphone,
+  Tablet,
+  Monitor,
+  Sliders
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { FileSystemRecord, TreeNode, ProjectFile } from "./types";
@@ -78,6 +82,8 @@ export default function App() {
   // Live preview properties
   const [previewKey, setPreviewKey] = useState<number>(0);
   const [currentUrlPath, setCurrentUrlPath] = useState<string>("index.html");
+  const [viewportMode, setViewportMode] = useState<"desktop" | "tablet" | "mobile" | "custom">("desktop");
+  const [customWidth, setCustomWidth] = useState<number>(375);
   
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -86,19 +92,20 @@ export default function App() {
   // Initialize with demo project if local storage is empty, else load stored project
   useEffect(() => {
     const saved = localStorage.getItem(`sandbox_files_${siteId}`);
-    if (saved) {
+    if (saved !== null) {
       try {
         const parsed = JSON.parse(saved);
-        if (Object.keys(parsed).length > 0) {
-          setFiles(parsed);
-          // Auto select first HTML file or any file
-          const firstHtml = Object.keys(parsed).find(p => p.endsWith(".html")) || Object.keys(parsed)[0];
-          if (firstHtml) {
-            setSelectedFilePath(firstHtml);
-            setEditorContent(parsed[firstHtml]?.content || "");
-          }
-          return;
+        setFiles(parsed);
+        // Auto select first HTML file or any file
+        const firstHtml = Object.keys(parsed).find(p => p.endsWith(".html")) || Object.keys(parsed)[0];
+        if (firstHtml) {
+          setSelectedFilePath(firstHtml);
+          setEditorContent(parsed[firstHtml]?.content || "");
+        } else {
+          setSelectedFilePath("");
+          setEditorContent("");
         }
+        return;
       } catch (e) {
         console.error("Failed to load saved files", e);
       }
@@ -118,8 +125,6 @@ export default function App() {
 
   // Persist files in local storage and synchronize to the server whenever they change
   useEffect(() => {
-    if (Object.keys(files).length === 0) return;
-    
     localStorage.setItem(`sandbox_files_${siteId}`, JSON.stringify(files));
     syncFilesToServer();
   }, [files]);
@@ -337,29 +342,98 @@ export default function App() {
   const renderMarkdownSimple = (text: string) => {
     if (!text) return null;
     const lines = text.split("\n");
-    return lines.map((line, idx) => {
+    const elements: React.ReactNode[] = [];
+    let insideCodeBlock = false;
+    let codeLanguage = "";
+    let accumulatedCode: string[] = [];
+
+    lines.forEach((line, idx) => {
+      // Check for code blocks
+      if (line.trim().startsWith("```")) {
+        if (insideCodeBlock) {
+          // Close block
+          elements.push(
+            <div key={`code-${idx}`} className="my-2.5">
+              <div className="flex items-center justify-between px-3 py-1 bg-slate-950 border-t border-x border-slate-800 rounded-t-lg text-[9px] font-mono text-slate-400">
+                <span>{codeLanguage.toUpperCase() || "CODE"}</span>
+                <span className="text-[8px] bg-slate-800 text-slate-300 py-0.5 px-1 rounded">Read-only</span>
+              </div>
+              <pre className="bg-slate-950 p-3 rounded-b-lg border border-slate-800 text-[10.5px] font-mono text-emerald-300 overflow-x-auto leading-relaxed max-w-full">
+                <code>{accumulatedCode.join("\n")}</code>
+              </pre>
+            </div>
+          );
+          accumulatedCode = [];
+          insideCodeBlock = false;
+        } else {
+          // Open block
+          insideCodeBlock = true;
+          codeLanguage = line.trim().slice(3) || "code";
+        }
+        return;
+      }
+
+      if (insideCodeBlock) {
+        accumulatedCode.push(line);
+        return;
+      }
+
+      // Headers
       if (line.startsWith("### ")) {
-        return <h4 key={idx} className="text-xs font-bold text-slate-100 mt-4 mb-2 first:mt-0 font-sans tracking-wide uppercase">{line.replace("### ", "")}</h4>;
+        elements.push(<h4 key={idx} className="text-xs font-bold text-slate-100 mt-5 mb-2 first:mt-0 font-sans tracking-wide uppercase border-l-2 border-indigo-500 pl-2">{line.replace("### ", "")}</h4>);
+        return;
       }
       if (line.startsWith("## ")) {
-        return <h3 key={idx} className="text-sm font-bold text-indigo-400 mt-5 mb-2 first:mt-0 font-sans">{line.replace("## ", "")}</h3>;
+        elements.push(<h3 key={idx} className="text-sm font-bold text-indigo-400 mt-6 mb-2.5 first:mt-0 font-sans tracking-tight">{line.replace("## ", "")}</h3>);
+        return;
       }
       if (line.startsWith("# ")) {
-        return <h2 key={idx} className="text-base font-black text-white mt-6 mb-3 first:mt-0 font-sans border-b border-slate-800 pb-1">{line.replace("# ", "")}</h2>;
+        elements.push(<h2 key={idx} className="text-base font-black text-white mt-7 mb-4 first:mt-0 font-sans border-b border-slate-800 pb-1.5 tracking-tight">{line.replace("# ", "")}</h2>);
+        return;
       }
+
+      // Lists
       if (line.trim().startsWith("- ") || line.trim().startsWith("* ")) {
         const cleanLine = line.trim().replace(/^[-*]\s+/, "");
-        return (
+        elements.push(
           <li key={idx} className="text-xs text-slate-300 ml-4 list-disc py-1 font-sans leading-relaxed">
             {parseBoldText(cleanLine)}
           </li>
         );
+        return;
       }
+
+      // Quotes
+      if (line.trim().startsWith("> ")) {
+        const cleanLine = line.trim().replace(/^>\s+/, "");
+        elements.push(
+          <blockquote key={idx} className="border-l-4 border-slate-700 bg-slate-950/40 px-3 py-2 my-2 rounded text-xs italic text-slate-400 font-sans">
+            {parseBoldText(cleanLine)}
+          </blockquote>
+        );
+        return;
+      }
+
+      // Empty separator
       if (line.trim() === "") {
-        return <div key={idx} className="h-2"></div>;
+        elements.push(<div key={idx} className="h-2"></div>);
+        return;
       }
-      return <p key={idx} className="text-xs text-slate-300 leading-relaxed py-1 font-sans">{parseBoldText(line)}</p>;
+
+      // Normal paragraph
+      elements.push(<p key={idx} className="text-xs text-slate-300 leading-relaxed py-1 font-sans">{parseBoldText(line)}</p>);
     });
+
+    // In case the code block wasn't closed correctly
+    if (insideCodeBlock && accumulatedCode.length > 0) {
+      elements.push(
+        <pre key="unclosed-code" className="bg-slate-950 p-3 my-2 rounded-lg border border-slate-800 text-[10.5px] font-mono text-emerald-300 overflow-x-auto leading-relaxed max-w-full">
+          <code>{accumulatedCode.join("\n")}</code>
+        </pre>
+      );
+    }
+
+    return elements;
   };
 
   // Helper helper to convert uploaded files logically
@@ -1076,17 +1150,137 @@ export default function App() {
               </div>
             </div>
 
+            {/* Viewport/Device Controls Bar */}
+            <div className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0 select-none text-slate-300">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-2">VORSCHAU-PORT:</span>
+                
+                <button
+                  type="button"
+                  onClick={() => setViewportMode("desktop")}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${
+                    viewportMode === "desktop"
+                      ? "bg-indigo-600 border border-indigo-500 text-white shadow-sm"
+                      : "bg-slate-800/50 hover:bg-slate-800 border border-slate-750 text-slate-400 hover:text-slate-200"
+                  }`}
+                  title="Desktop (100% Breite)"
+                >
+                  <Monitor className="w-3.5 h-3.5" />
+                  <span>Desktop (100%)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setViewportMode("tablet")}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${
+                    viewportMode === "tablet"
+                      ? "bg-indigo-600 border border-indigo-500 text-white shadow-sm"
+                      : "bg-slate-800/50 hover:bg-slate-800 border border-slate-750 text-slate-400 hover:text-slate-200"
+                  }`}
+                  title="Tablet (768px Breite)"
+                >
+                  <Tablet className="w-3.5 h-3.5" />
+                  <span>Tablet (768px)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setViewportMode("mobile")}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${
+                    viewportMode === "mobile"
+                      ? "bg-emerald-600 border border-emerald-500 text-white shadow-sm animate-pulse"
+                      : "bg-slate-800/50 hover:bg-slate-800 border border-slate-750 text-slate-400 hover:text-slate-200"
+                  }`}
+                  title="Handy / Mobile (375px Breite)"
+                >
+                  <Smartphone className="w-3.5 h-3.5 text-emerald-300" />
+                  <span className="font-semibold text-emerald-300">Handy (375px)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setViewportMode("custom")}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${
+                    viewportMode === "custom"
+                      ? "bg-indigo-600 border border-indigo-500 text-white shadow-sm"
+                      : "bg-slate-800/50 hover:bg-slate-800 border border-slate-750 text-slate-400 hover:text-slate-200"
+                  }`}
+                  title="Eigene Breite anpassen..."
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>Eigene Größe</span>
+                </button>
+              </div>
+
+              {/* Numerical stats / Custom width slider */}
+              <div className="flex items-center gap-3 ml-auto text-[10px]">
+                {viewportMode === "custom" && (
+                  <div className="flex items-center gap-2 bg-slate-950 px-2.5 py-0.5 rounded-lg border border-slate-800">
+                    <span className="text-[10px] text-slate-500 font-mono">Breite:</span>
+                    <input
+                      type="range"
+                      min="320"
+                      max="1440"
+                      value={customWidth}
+                      onChange={(e) => setCustomWidth(parseInt(e.target.value))}
+                      className="w-24 accent-indigo-500 cursor-ew-resize h-1 rounded bg-slate-800"
+                    />
+                    <span className="text-[10px] font-mono font-bold text-indigo-400">{customWidth}px</span>
+                  </div>
+                )}
+                <div className="font-mono text-slate-500 text-[10px]">
+                  {viewportMode === "desktop" && "Effektive Größe: 100% (Fluide)"}
+                  {viewportMode === "tablet" && "Simuliert: IPad / Tablet (768px)"}
+                  {viewportMode === "mobile" && "Simuliert: Mobiles Endgerät (375px)"}
+                  {viewportMode === "custom" && "Simuliert: Manuell skaliert"}
+                </div>
+              </div>
+            </div>
+
             {/* Dynamic Iframe renderer sandbox container */}
-            <div className="flex-1 bg-white relative">
+            <div className="flex-1 bg-slate-950 relative overflow-auto flex items-center justify-center p-4">
+              {/* Dotted Grid Background Accent for premium design studio simulator look */}
+              <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
+                backgroundImage: `radial-gradient(circle, #ffffff 1px, transparent 1px)`,
+                backgroundSize: "16px 16px"
+              }}></div>
+
               {Object.keys(files).length > 0 ? (
-                <iframe
-                  key={previewKey}
-                  ref={iframeRef}
-                  src={activePreviewUrl}
-                  title="Interactive Website View"
-                  className="w-full h-full border-none bg-white font-sans"
-                  sandbox="allow-scripts allow-same-origin allow-popups"
-                />
+                <div 
+                  className={`h-full shadow-2xl transition-all duration-300 relative flex flex-col bg-white overflow-hidden ${
+                    viewportMode === "desktop" ? "w-full rounded-none" : "rounded-2xl border-[6px] border-slate-800 shadow-indigo-950/20 shadow-2xl"
+                  }`}
+                  style={{
+                    width: viewportMode === "desktop" 
+                      ? "100%" 
+                      : viewportMode === "tablet" 
+                      ? "768px" 
+                      : viewportMode === "mobile" 
+                      ? "375px" 
+                      : `${customWidth}px`,
+                    maxWidth: "100%"
+                  }}
+                >
+                  {/* Small top bevel speaker slot mockup on simulated devices */}
+                  {viewportMode !== "desktop" && (
+                    <div className="w-full bg-slate-900 py-1.5 px-4 flex items-center justify-between border-b border-slate-800 shrink-0 select-none">
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-700"></div>
+                      <div className="w-12 h-1 bg-slate-700 rounded-full mx-auto"></div>
+                      <div className="text-[9px] font-sans font-semibold text-slate-400 tracking-wider">
+                        {viewportMode === "tablet" ? "768px × Tablet" : viewportMode === "mobile" ? "375px × Handy" : `${customWidth}px × Custom`}
+                      </div>
+                    </div>
+                  )}
+
+                  <iframe
+                    key={previewKey}
+                    ref={iframeRef}
+                    src={activePreviewUrl}
+                    title="Interactive Website View"
+                    className="w-full flex-1 border-none bg-white font-sans"
+                    sandbox="allow-scripts allow-same-origin allow-popups"
+                  />
+                </div>
               ) : (
                 <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center p-8 text-center text-slate-500">
                   <Play className="w-10 h-10 text-indigo-500/30 mb-2 animate-bounce" />
